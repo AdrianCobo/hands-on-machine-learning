@@ -544,7 +544,29 @@ def load_titanic_data():
         url = "https://github.com/ageron/data/raw/main/titanic.tgz"
         urllib.request.urlretrieve(url, tarball_path)
         with tarfile.open(tarball_path) as titanic_tarball:
-            titanic_tarball.extractall(path="datasets")
+            
+            import os
+            
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(titanic_tarball, path="datasets")
     return [pd.read_csv(Path("datasets/titanic") / filename)
             for filename in ("train.csv", "test.csv")]
 train_data, test_data = load_titanic_data()
